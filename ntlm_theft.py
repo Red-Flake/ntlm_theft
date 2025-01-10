@@ -75,13 +75,15 @@ parser.add_argument('-f', '--filename',action='store', dest='filename',required=
 args = parser.parse_args()
 
 # ensure files are writable
-def set_writable(path):
-    """Recursively set write permissions on all files and directories."""
+def set_writable_permissions(path):
+    """Recursively set writable permissions for files and directories."""
     for root, dirs, files in os.walk(path):
         for dir_name in dirs:
-            os.chmod(os.path.join(root, dir_name), 0o755)  # rwxr-xr-x for directories
+            dir_path = os.path.join(root, dir_name)
+            os.chmod(dir_path, 0o755)  # rwxr-xr-x for directories
         for file_name in files:
-            os.chmod(os.path.join(root, file_name), 0o644)  # rw-r--r-- for files
+            file_path = os.path.join(root, file_name)
+            os.chmod(file_path, 0o644)  # rw-r--r-- for files
 
 # NOT WORKING ON LATEST WINDOWS
 # .scf remote IconFile Attack
@@ -153,19 +155,21 @@ def create_docx_includepicture(generate, server, filename):
     # Source path (read-only in Nix store)
     src = os.path.join(script_directory, "templates", "docx-includepicture-template")
     
-    # Explicitly create a writable temporary directory in /tmp
-    temp_dir = os.path.join("/tmp", "ntlm_theft_temp")
+    # Create a writable temporary directory in /tmp
+    temp_dir = "/tmp/ntlm_theft_temp"
     if not os.path.exists(temp_dir):
-        os.makedirs(temp_dir, exist_ok=True)  # Create the directory with proper permissions
+        os.makedirs(temp_dir, exist_ok=True)
 
     dest = os.path.join(temp_dir, "docx-includepicture-template")
+    if os.path.exists(dest):
+        shutil.rmtree(dest)  # Clean up any existing directory
 
     try:
         # Copy the template to the writable temporary directory
         shutil.copytree(src, dest)
         
-        # Set writable permissions on all files and directories
-        set_writable(dest)
+        # Fix permissions to make files writable
+        set_writable_permissions(dest)
         
         # Modify the document.xml.rels file in the temporary directory
         documentfilename = os.path.join(dest, "word", "_rels", "document.xml.rels")
