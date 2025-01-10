@@ -74,16 +74,19 @@ parser.add_argument('-f', '--filename',action='store', dest='filename',required=
     help='The base filename without extension, can be renamed later (test, Board-Meeting2020, Bonus_Payment_Q4)')
 args = parser.parse_args()
 
-# ensure files are writable
-def set_writable_permissions(path):
-    """Recursively set writable permissions for files and directories."""
+
+def set_writable_and_valid_timestamps(path):
+    """Recursively set writable permissions and valid timestamps for files and directories."""
+    current_time = time.time()  # Get current timestamp
     for root, dirs, files in os.walk(path):
         for dir_name in dirs:
             dir_path = os.path.join(root, dir_name)
             os.chmod(dir_path, 0o755)  # rwxr-xr-x for directories
+            os.utime(dir_path, (current_time, current_time))  # Update access and modification times
         for file_name in files:
             file_path = os.path.join(root, file_name)
             os.chmod(file_path, 0o644)  # rw-r--r-- for files
+            os.utime(file_path, (current_time, current_time))  # Update access and modification times
 
 # NOT WORKING ON LATEST WINDOWS
 # .scf remote IconFile Attack
@@ -168,8 +171,8 @@ def create_docx_includepicture(generate, server, filename):
         # Copy the template to the writable temporary directory
         shutil.copytree(src, dest)
         
-        # Fix permissions to make files writable
-        set_writable_permissions(dest)
+        # Fix permissions and timestamps
+        set_writable_and_valid_timestamps(dest)
         
         # Modify the document.xml.rels file in the temporary directory
         documentfilename = os.path.join(dest, "word", "_rels", "document.xml.rels")
