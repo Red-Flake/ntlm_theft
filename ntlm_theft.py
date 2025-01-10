@@ -30,6 +30,7 @@ import shutil
 import xlsxwriter
 from sys import exit
 import tempfile
+import time
 
 #the basic path of the script, make it possible to run from anywhere
 script_directory = "/run/current-system/sw/share/ntlm_theft"
