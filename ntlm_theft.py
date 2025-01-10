@@ -74,6 +74,14 @@ parser.add_argument('-f', '--filename',action='store', dest='filename',required=
     help='The base filename without extension, can be renamed later (test, Board-Meeting2020, Bonus_Payment_Q4)')
 args = parser.parse_args()
 
+# ensure files are writable
+def set_writable(path):
+    """Recursively set write permissions on all files and directories."""
+    for root, dirs, files in os.walk(path):
+        for dir_name in dirs:
+            os.chmod(os.path.join(root, dir_name), 0o755)  # rwxr-xr-x for directories
+        for file_name in files:
+            os.chmod(os.path.join(root, file_name), 0o644)  # rw-r--r-- for files
 
 # NOT WORKING ON LATEST WINDOWS
 # .scf remote IconFile Attack
@@ -149,12 +157,15 @@ def create_docx_includepicture(generate, server, filename):
     temp_dir = os.path.join("/tmp", "ntlm_theft_temp")
     if not os.path.exists(temp_dir):
         os.makedirs(temp_dir, exist_ok=True)  # Create the directory with proper permissions
-    
+
     dest = os.path.join(temp_dir, "docx-includepicture-template")
-    
+
     try:
         # Copy the template to the writable temporary directory
         shutil.copytree(src, dest)
+        
+        # Set writable permissions on all files and directories
+        set_writable(dest)
         
         # Modify the document.xml.rels file in the temporary directory
         documentfilename = os.path.join(dest, "word", "_rels", "document.xml.rels")
@@ -170,8 +181,8 @@ def create_docx_includepicture(generate, server, filename):
         print(f"Created: {filename} (OPEN)")
     finally:
         # Clean up the temporary directory
-        if os.path.exists(temp_dir):
-            shutil.rmtree(temp_dir)
+        if os.path.exists(dest):
+            shutil.rmtree(dest)
 
 def create_docx_remote_template(generate, server, filename):
     src = os.path.join(script_directory, "templates", "docx-remotetemplate-template")
