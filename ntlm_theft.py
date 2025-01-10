@@ -32,7 +32,7 @@ from sys import exit
 import tempfile
 
 #the basic path of the script, make it possible to run from anywhere
-script_directory = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'share', 'ntlm_theft')
+script_directory = "/run/current-system/sw/share/ntlm_theft"
 
 #arg parser to generate all or one file
 #python ntlm_theft --generate all --ip 127.0.0.1 --filename board-meeting2020
