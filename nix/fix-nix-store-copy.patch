@@ -1,7 +1,7 @@
 Fix Nix store compatibility and Python 3.12+ escape sequence warning.
 
 1. Add copytree_writable() helper to fix permissions and timestamps when
-   copying from Nix store (read-only files with epoch 0 timestamps).
+   copying from Nix store (read-only files with pre-1980 timestamps).
 2. Fix invalid escape sequence '\l' that causes SyntaxWarning in Python 3.12+.
 
 --- a/ntlm_theft.py
@@ -14,17 +14,26 @@ Fix Nix store compatibility and Python 3.12+ escape sequence warning.
 +def copytree_writable(src, dest):
 +    """
 +    Copy directory tree ensuring files are writable with valid timestamps.
-+    Needed when source files are read-only or have epoch 0 timestamps
-+    (ZIP format requires dates >= 1980).
++    Needed when source files are read-only or have pre-1980 timestamps
++    (ZIP format requires dates >= 1980-01-01).
 +    """
++    zip_safe_timestamp = 315532800  # 1980-01-01T00:00:00Z
 +    shutil.copytree(src, dest)
 +    for dirpath, dirnames, filenames in os.walk(dest):
 +        os.chmod(dirpath, 0o755)
-+        os.utime(dirpath, None)
++        try:
++            if os.stat(dirpath).st_mtime < zip_safe_timestamp:
++                os.utime(dirpath, (zip_safe_timestamp, zip_safe_timestamp))
++        except OSError:
++            pass
 +        for name in filenames:
 +            path = os.path.join(dirpath, name)
 +            os.chmod(path, 0o644)
-+            os.utime(path, None)
++            try:
++                if os.stat(path).st_mtime < zip_safe_timestamp:
++                    os.utime(path, (zip_safe_timestamp, zip_safe_timestamp))
++            except OSError:
++                pass
 +
 +
  #arg parser to generate all or one file
