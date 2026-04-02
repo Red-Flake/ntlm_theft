@@ -12,7 +12,7 @@ let
 in
 stdenv.mkDerivation rec {
   pname = "ntlm_theft";
-  version = "0-unstable-2024-01-15";
+  version = "unstable-2025-09-22";
 
   src = fetchFromGitHub {
     owner = "Greenwolf";
